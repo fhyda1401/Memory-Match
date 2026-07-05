@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Memory Match - Pi Authentication</title>
+  </head>
+  <body>
+    <button id="signin">Sign in with Pi</button>
+    <div id="status" style="margin-top:12px;color:#333"></div>
+
+    <!-- Pi SDK (UMD build) -->
+    <script src="https://unpkg.com/@pi-apps/pi-sdk/dist/pi-sdk.umd.min.js"></script>
+
+    <script>
+      // Replace this with your Pi App Client ID
+      const PI_CLIENT_ID = 'REPLACE_WITH_PI_CLIENT_ID';
+
+      const statusEl = document.getElementById('status');
+      const signinBtn = document.getElementById('signin');
+
+      async function sendTokenToBackend(accessToken) {
+        try {
+          const res = await fetch('/.netlify/functions/pi-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessToken })
+          });
+
+          const data = await res.json();
+          if (res.ok) {
+            statusEl.textContent = `Authenticated — user: ${data?.data?.username || JSON.stringify(data.data)}`;
+          } else {
+            statusEl.textContent = `Backend validation failed: ${JSON.stringify(data)}`;
+          }
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = 'Network error when contacting backend.';
+        }
+      }
+
+      async function authenticateFlow() {
+        try {
+          statusEl.textContent = 'Initializing Pi SDK...';
+          // Pi.init returns a Promise — await it fully before authenticate
+          await Pi.init({ clientId: PI_CLIENT_ID });
+
+          statusEl.textContent = 'Pi SDK initialized — performing authenticate...';
+
+          // Use username scope as requested
+          const result = await Pi.authenticate({ scope: ['username'] });
+
+          // Expecting an access token in result.accessToken
+          const accessToken = result?.accessToken;
+          if (!accessToken) {
+            statusEl.textContent = 'Authentication completed but no access token was returned.';
+            console.error('No access token in Pi.authenticate result:', result);
+            return;
+          }
+
+          statusEl.textContent = 'Got access token — validating on backend...';
+          await sendTokenToBackend(accessToken);
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = `Authentication error: ${err?.message || err}`;
+        }
+      }
+
+      // Trigger automatically when app loads
+      window.addEventListener('load', () => {
+        // Fire and forget — keep UX responsive
+        authenticateFlow();
+      });
+
+      // Manual trigger
+      signinBtn.addEventListener('click', () => {
+        authenticateFlow();
+      });
+    </script>
+  </body>
+</html>
