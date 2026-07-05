@@ -1,0 +1,20 @@
+{
+  "name": "memory-match",
+  "version": "1.0.0",
+  "description": "Memory Match with Pi Network authentication",
+  "main": "index.html",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "esbuild src/index.js --bundle --outfile=dist/bundle.js --platform=browser --format=iife --global-name=App",
+    "start": "npm run build"
+  },
+  "dependencies": {
+    "@pi-apps/pi-sdk": "^0.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.17.19"
+  },
+  "license": "MIT"
+}
